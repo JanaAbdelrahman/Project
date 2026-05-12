@@ -20,8 +20,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve the frontend from the /public folder
-app.use(express.static(path.join(__dirname, "public")));
+// Serve the frontend (index.html is in the same directory as server.js)
+app.use(express.static(path.join(__dirname)));
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 // Railway injects PORT automatically. Fallback to 3000 for local dev.
