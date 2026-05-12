@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noor – Smart IR Remote</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+    }
+
+    /* ── Status Bar ───────────────────────────────────────────── */
+    #status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      margin-bottom: 2rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+    .dot.connected { background: #22c55e; }
+    .dot.disconnected { background: #ef4444; }
+
+    /* ── Grid ─────────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    /* ── Card ─────────────────────────────────────────────────── */
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.96); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary   { background: #3b82f6; color: #fff; }
+    .btn-danger    { background: #ef4444; color: #fff; }
+    .btn-success   { background: #22c55e; color: #fff; }
+    .btn-warning   { background: #f59e0b; color: #fff; }
+    .btn-secondary { background: #475569; color: #e2e8f0; }
+    .btn-learn     { background: #7c3aed; color: #fff; }
+
+    /* ── Toast ────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 0.7rem 1.4rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      transition: transform 0.3s ease;
+      z-index: 999;
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.ok   { border-color: #22c55e; color: #86efac; }
+    #toast.err  { border-color: #ef4444; color: #fca5a5; }
+  </style>
+</head>
+<body>
+
+  <h1>🌙 Noor</h1>
+  <p class="subtitle">Smart IR Remote Controller</p>
+
+  <!-- Status -->
+  <div id="status-bar">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">Checking connection…</span>
+  </div>
+
+  <!-- Device Cards -->
+  <div class="grid">
+
+    <!-- TV Card -->
+    <div class="card">
+      <h2>📺 TV</h2>
+      <div class="btn-group">
+        <button class="btn-danger"    onclick="send('tv/power')">⏻ Power</button>
+        <button class="btn-primary"   onclick="send('tv/volup')">🔊 Vol +</button>
+        <button class="btn-secondary" onclick="send('tv/voldown')">🔉 Vol −</button>
+        <button class="btn-warning"   onclick="send('tv/mute')">🔇 Mute</button>
+      </div>
+    </div>
+
+    <!-- Fan Card -->
+    <div class="card">
+      <h2>🌀 Fan</h2>
+      <div class="btn-group">
+        <button class="btn-danger"    onclick="send('fan/power')">⏻ Power</button>
+        <button class="btn-success"   onclick="send('fan/speed1')">💨 Speed 1</button>
+        <button class="btn-warning"   onclick="send('fan/speed2')">💨 Speed 2</button>
+        <button class="btn-primary"   onclick="send('fan/speed3')">💨 Speed 3</button>
+      </div>
+    </div>
+
+    <!-- IR Learning Card -->
+    <div class="card">
+      <h2>🎓 IR Learning</h2>
+      <p style="font-size:0.82rem; color:#94a3b8; margin-bottom:0.8rem;">
+        Put the ESP32 into learning mode, then press the physical remote button.
+        The captured code will appear in the ESP32 Serial Monitor.
+      </p>
+      <div class="btn-group">
+        <button class="btn-learn" onclick="learn('FAN_POWER')">Learn FAN_POWER</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast"></div>
+
+  <script>
+    // ── Config ──────────────────────────────────────────────────
+    const API = "http://localhost:3000"; // backend URL
+
+    // ── Status check ────────────────────────────────────────────
+    async function checkStatus() {
+      try {
+        const res = await fetch(`${API}/api/status`);
+        const data = await res.json();
+        const dot  = document.getElementById("status-dot");
+        const txt  = document.getElementById("status-text");
+
+        if (data.mqtt === "connected") {
+          dot.className = "dot connected";
+          txt.textContent = `MQTT connected · broker ${data.broker}`;
+        } else {
+          dot.className = "dot disconnected";
+          txt.textContent = "MQTT disconnected";
+        }
+      } catch {
+        document.getElementById("status-dot").className = "dot disconnected";
+        document.getElementById("status-text").textContent = "Backend unreachable";
+      }
+    }
+
+    checkStatus();
+    setInterval(checkStatus, 10000);
+
+    // ── Send IR command ──────────────────────────────────────────
+    async function send(action) {
+      try {
+        const res = await fetch(`${API}/api/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast(`✅ Sent: ${action}`, "ok");
+        } else {
+          showToast(`❌ ${data.error}`, "err");
+        }
+      } catch (err) {
+        showToast("❌ Backend unreachable", "err");
+      }
+    }
+
+    // ── Start IR learning ────────────────────────────────────────
+    async function learn(button) {
+      try {
+        const res = await fetch(`${API}/api/learn/${button}`);
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast(`🎓 Learning started for ${button} — press remote now`, "ok");
+        } else {
+          showToast(`❌ ${data.error}`, "err");
+        }
+      } catch {
+        showToast("❌ Could not reach backend", "err");
+      }
+    }
+
+    // ── Toast helper ─────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, type = "") {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.className = `show ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = ""; }, 3000);
+    }
+  </script>
+
+</body>
+</html>

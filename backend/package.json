@@ -1,0 +1,14 @@
+{
+  "name": "noor-backend",
+  "version": "1.0.0",
+  "description": "Backend bridge between the web UI and the ESP32 IR controller",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "2.8.5",
+    "express": "4.18.2",
+    "mqtt": "5.3.4"
+  }
+}
