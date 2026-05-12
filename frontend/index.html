@@ -184,7 +184,8 @@
 
   <script>
     // ── Config ──────────────────────────────────────────────────
-    const API = "http://localhost:3000"; // backend URL
+    // Empty string = same origin (works on Railway and locally when served by the backend)
+    const API = "";
 
     // ── Status check ────────────────────────────────────────────
     async function checkStatus() {

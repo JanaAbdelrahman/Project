@@ -14,22 +14,44 @@ const express = require("express");
 const mqtt = require("mqtt");
 const cors = require("cors");
 const http = require("http");
+const path = require("path");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve the frontend from the /public folder
+app.use(express.static(path.join(__dirname, "public")));
+
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-const PORT = 3000;
-const MQTT_BROKER = "mqtt://192.168.1.101"; // same broker the ESP32 uses
-const ESP32_IP = "192.168.1.101";           // ESP32 local IP (update after first boot)
-const ESP32_PORT = 80;
+// Railway injects PORT automatically. Fallback to 3000 for local dev.
+const PORT = process.env.PORT || 3000;
+
+// HiveMQ Cloud cluster — credentials stored as env vars for security.
+// In Railway dashboard set:
+//   MQTT_HOST     → 9287c1d4c76744119c5c67c70ef13e15.s1.eu.hivemq.cloud
+//   MQTT_PORT     → 8883
+//   MQTT_USERNAME → janaa
+//   MQTT_PASSWORD → Jana2005
+//   ESP32_IP      → (your ESP32 local IP, optional)
+const MQTT_HOST     = process.env.MQTT_HOST     || "9287c1d4c76744119c5c67c70ef13e15.s1.eu.hivemq.cloud";
+const MQTT_PORT     = process.env.MQTT_PORT     || 8883;
+const MQTT_USERNAME = process.env.MQTT_USERNAME || "janaa";
+const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "Jana2005";
+const ESP32_IP      = process.env.ESP32_IP      || "192.168.1.101";
+const ESP32_PORT    = 80;
 
 // ─── MQTT CLIENT ───────────────────────────────────────────────────────────
-const mqttClient = mqtt.connect(MQTT_BROKER);
+// HiveMQ Cloud requires TLS (mqtts://) on port 8883
+const mqttClient = mqtt.connect(`mqtts://${MQTT_HOST}`, {
+  port: Number(MQTT_PORT),
+  username: MQTT_USERNAME,
+  password: MQTT_PASSWORD,
+  rejectUnauthorized: true,   // enforce valid TLS certificate
+});
 
 mqttClient.on("connect", () => {
-  console.log("✅ Connected to MQTT broker:", MQTT_BROKER);
+  console.log("✅ Connected to HiveMQ:", MQTT_HOST);
 });
 
 mqttClient.on("error", (err) => {
@@ -121,13 +143,14 @@ app.get("/api/learn/:button", (req, res) => {
 app.get("/api/status", (req, res) => {
   res.json({
     mqtt: mqttClient.connected ? "connected" : "disconnected",
-    broker: MQTT_BROKER,
+    broker: MQTT_HOST,
     esp32: ESP32_IP,
     availableActions: Object.keys(TOPIC_MAP),
   });
 });
 
 // ─── START SERVER ──────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🚀 Backend running at http://localhost:${PORT}`);
+// Listen on 0.0.0.0 so Railway can route traffic to the container
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
